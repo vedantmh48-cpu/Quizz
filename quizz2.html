@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThinkWise | Level Up Your Mind</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #1cb0f6;
+            --primary-dark: #1899d6;
+            --success: #58cc02;
+            --success-dark: #46a302;
+            --error: #ff4b4b;
+            --warning: #ffc800;
+            --bg: #f0f2f5;
+            --text: #3c3c3c;
+            --glass: rgba(255, 255, 255, 0.9);
+        }
+
+        * { box-sizing: border-box; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        body {
+            font-family: 'Nunito', sans-serif, 'Segoe UI';
+            background: linear-gradient(135deg, #f5f7ff, #ffe8f0, #f0f8ff);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            min-block-size: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Decorative Floating Shapes */
+        .blob {
+            position: fixed; inline-size: 360px; block-size: 360px;
+            background: radial-gradient(circle at 30% 30%, rgba(28,176,246,0.18), rgba(28,176,246,0.06));
+            filter: blur(72px); opacity: 0.9; z-index: -1; border-radius: 50%;
+            animation: move 22s infinite alternate; mix-blend-mode: screen;
+        }
+
+        @keyframes move { from { transform: translate(-20%, -20%); } to { transform: translate(100%, 100%); } }
+
+        .app-shell {
+            width: 100%; max-inline-size: 1100px; margin-inline: auto; margin-block-start: 24px;
+            height: auto; background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+            backdrop-filter: blur(10px) saturate(1.05); border-radius: 16px; overflow: hidden;
+            box-shadow: 0 20px 60px rgba(7,10,25,0.55); display: flex; flex-direction: column;
+            border: 1px solid rgba(255,255,255,0.04); padding-block-end: 120px;
+        }
+
+        section { display: none; padding: 40px 25px; flex-direction: column; }
+        section.active { display: flex; animation: fadeIn 0.5s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+        /* Modern Typography */
+        h1 { font-size: 2.5rem; font-weight: 900; color: var(--primary); margin: 10px 0; text-align: center; text-shadow: 0 6px 20px rgba(28,176,246,0.06); }
+        h2 { font-size: 1.8rem; font-weight: 800; color: #2c3e50; margin: 15px 0; }
+        p { text-align: center; color: rgba(44,62,80,0.75); line-height: 1.6; margin-inline: auto; max-inline-size: 720px; }
+
+        /* Dashboard & Stats */
+        .stats-row {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+            margin-block-end: 30px; position: sticky; inset-block-start: 0; z-index: 10;
+            padding: 16px; border-bottom-left-radius: 18px; border-bottom-right-radius: 18px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+            box-shadow: 0 6px 24px rgba(3,8,20,0.45);
+        }
+
+        .stat-pill {
+            background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.4));
+            border: 1px solid rgba(28,176,246,0.2); color: #2c3e50;
+            border-radius: 12px; padding: 14px; text-align: center; backdrop-filter: blur(4px);
+        }
+
+        .stat-pill span { display: block; font-weight: 900; font-size:1.15rem; }
+        .label { font-size: 0.65rem; color: rgba(44,62,80,0.65); text-transform: uppercase; }
+
+        /* Courses Grid - horizontal circular cards */
+        .courses-grid {
+            display: flex; flex-direction: row; flex-wrap: wrap; gap: 20px; align-items: center;
+            padding: 28px 18px 100px; overflow-x: visible; white-space: normal;
+            -webkit-overflow-scrolling: touch; justify-content: center;
+            background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+        }
+
+        .course-card {
+            background: transparent; border: none; border-radius: 50%;
+            width: 150px; height: 150px; min-width: 150px; flex: 0 0 150px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; cursor: pointer; position: relative; padding: 6px;
+            transition: transform 220ms cubic-bezier(.2,.9,.3,1);
+        }
+
+        .course-card:hover { transform: translateY(-6px) scale(1.02); }
+
+        .course-icon { font-size: 2.6rem; margin-block-end: 8px; line-height:1; display:flex; align-items:center; justify-content:center; width:56px; height:56px; border-radius:50%; background: rgba(255,255,255,0.5); }
+        .course-name { font-weight: 800; color: #2c3e50; margin: 8px 0 2px; font-size: 0.95rem; }
+        .course-progress { font-size: 0.78rem; color: rgba(44,62,80,0.65); }
+
+        /* The Learning Path */
+        .path-scroll {
+            display: flex; flex-direction: column; align-items: center;
+            padding: 20px 0 100px; gap: 30px;
+        }
+
+        .lesson-bubble {
+            inline-size: 85px; block-size: 80px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; font-weight: bold; color: white;
+            cursor: pointer; position: relative;
+            box-shadow: 0 8px 0 rgba(0,0,0,0.1);
+        }
+
+        .lesson-bubble::after {
+            content: ''; position: absolute; inset-block-end: -25px; inline-size: 4px;
+            block-size: 25px;  background: linear-gradient(135deg, #1cb0f6, #78f0d8); z-index: -1;
+        }
+
+        .lesson-bubble:last-child::after { display: none; }
+
+        .active-lesson { background: var(--primary); border-block-end: 8px solid var(--primary-dark); }
+        .completed-lesson { background: var(--success); border-block-end: 8px solid var(--success-dark); }
+        .locked-lesson { background: #e5e5e5; border-block-end: 8px solid #afafaf; color: #afafaf; cursor: not-allowed; }
+
+        /* Quiz Interface */
+        .progress-wrapper { inline-size: 100%; block-size: 18px; background: #e5e5e5; border-radius: 20px; overflow: hidden; margin-block-end: 20px; }
+        .progress-inner { block-size: 100%; background: linear-gradient(90deg, #58cc02, #b0f61c); inline-size: 0%; border-radius: 20px; }
+
+        .q-card {
+            background: white; border: 2px solid #e5e5e5; border-radius: 25px;
+            padding: 30px; margin-block-start: 20px; box-shadow: var(--card-shadow);
+        }
+
+        .option {
+            inline-size: 100%; padding: 18px; margin: 12px 0; border: 2px solid #e5e5e5;
+            border-block-end: 5px solid #e5e5e5; border-radius: 18px; background: white;
+            font-size: 1.1rem; font-weight: 600; cursor: pointer; text-align: start;
+        }
+
+        .option:hover:not(:disabled) { background: #f7f7f7; transform: translateY(-2px); }
+        .option.correct { background: #d7ffb8; border-color: var(--success); color: var(--success-dark); border-block-end-color: var(--success-dark); }
+        .option.wrong { background: #ffdfe0; border-color: var(--error); color: var(--error); border-block-end-color: #c92121; }
+
+        /* Global Button */
+        .btn-action {
+            inline-size: 100%; padding: 14px 18px; border-radius: 14px; border: none;
+            background: linear-gradient(90deg, #19aef2, #78f0d8); color: #062233; font-size: 1.05rem;
+            font-weight: 800; cursor: pointer; box-shadow: 0 10px 30px rgba(12,30,45,0.45); margin-block-start: 18px;
+        }
+
+        .btn-action:active { transform: translateY(2px); box-shadow: 0 6px 18px rgba(12,30,45,0.35); }
+
+        .btn-secondary {
+            inline-size: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(28,176,246,0.3);
+            background: rgba(255,255,255,0.6); color: #2c3e50; font-size: 0.98rem; font-weight:700;
+            cursor: pointer; box-shadow: inset 0 -6px 0 rgba(0,0,0,0.06); margin-block-start: 10px;
+        }
+
+        .btn-secondary:active { transform: translateY(2px); }
+
+        .chart-container {  background: linear-gradient(135deg, #f5f7ff, #ffe8f0); border-radius: 20px; padding: 15px; margin-block-start: 20px; border: 2px solid #ddd; }
+        /* Header */
+        .app-header { border-block-end: 1px solid rgba(255,255,255,0.03); background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02)); padding:14px 20px; }
+
+        /* Answer animations */
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.06); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            20% { transform: translateX(-6px); }
+            40% { transform: translateX(6px); }
+            60% { transform: translateX(-6px); }
+            80% { transform: translateX(6px); }
+            100% { transform: translateX(0); }
+        }
+
+        .pop { animation: pop 450ms ease; }
+        .shake { animation: shake 600ms ease; }
+
+        /* Footer */
+        .app-footer { padding: 12px 18px; text-align: center; font-size: 0.95rem; color: rgba(255,255,255,0.7); border-block-start: 1px solid rgba(255,255,255,0.03); background: linear-gradient(180deg, rgba(0,0,0,0.25), rgba(0,0,0,0.35)); position:fixed; inset-inline-start:0; inset-inline-end:0; inset-block-end:0; z-index:1100; box-shadow: 0 -18px 40px rgba(0,0,0,0.6); }
+
+        /* Footer floating policy card */
+        .footer-card {
+            position: fixed; inset-inline-start: 50%; transform: translateX(-50%) translateY(20px); inset-block-end: 80px;
+            background: white; border-radius: 14px; padding: 18px; box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+            border: 2px solid #eaeef6; inline-size: 680px; max-inline-size: calc(100% - 36px); z-index: 1200;
+            opacity: 0; pointer-events: none; transition: transform 300ms ease, opacity 250ms ease;
+        }
+
+        .footer-card.visible { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
+
+        .footer-card .close-btn { position: absolute; inset-block-start: 10px; inset-inline-end: 12px; background:none; border:none; font-size:1.1rem; cursor:pointer; color:#999; }
+
+        /* Contact Info Box */
+        .contact-info-box {
+            position: static; width: 100%; max-width: 600px; margin: 0 auto 30px; background: linear-gradient(135deg, rgba(28,176,246,0.08), rgba(120,240,216,0.04));
+            border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 20px; z-index: 50;
+            box-shadow: 0 12px 40px rgba(3,8,20,0.6); backdrop-filter: blur(8px);
+        }
+
+        .contact-info-box h3 { margin: 0 0 16px 0; color: #1cb0f6; font-size: 1.1rem; font-weight: 800; }
+        .contact-info-item { display: flex; gap: 12px; margin-block: 14px; align-items: flex-start; }
+        .contact-info-item .icon { font-size: 1.4rem; min-width: 30px; }
+        .contact-info-item .text { display: flex; flex-direction: column; }
+        .contact-info-item .label { font-size: 0.75rem; color: rgba(255,255,255,0.65); text-transform: uppercase; font-weight: 600; }
+        .contact-info-item .value { color: rgba(255,255,255,0.9); font-size: 0.95rem; font-weight: 600; }
+
+        /* Contact Form Inputs */
+        #contact-name, #contact-email, #contact-msg {
+            background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+            border: 1px solid rgba(255,255,255,0.08) !important; color: #eaf6ff;
+            border-radius: 10px !important; padding: 12px 14px !important;
+        }
+
+        #contact-name::placeholder, #contact-email::placeholder, #contact-msg::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+
+        /* Responsive behaviour */
+        @media (max-inline-size: 720px) {
+            .courses-grid { justify-content: flex-start; padding-left:12px; gap: 12px; overflow-x: auto; }
+            .course-card { width: 120px; height: 120px; min-width: 120px; flex: 0 0 120px; }
+            .lesson-bubble { inline-size: 64px; block-size: 62px; font-size: 1.05rem; }
+            .q-card { padding: 18px; }
+            .btn-action { padding: 12px; font-size: 0.98rem; }
+            .btn-secondary { padding: 10px; font-size: 0.95rem; }
+            .footer-card { bottom: 90px; width: calc(100% - 28px); }
+            .app-shell { max-inline-size: 100%; }
+        }
+
+        @media (max-width: 420px) {
+            h1 { font-size: 1.9rem; }
+            .lesson-bubble { inline-size: 56px; block-size: 54px; }
+            .course-card { width: 100px; height: 100px; min-width: 100px; }
+            .course-icon { font-size: 1.6rem; }
+            .progress-wrapper { block-size: 14px; }
+            .footer-card { bottom: 100px; padding: 12px; }
+            .app-header { padding: 12px; }
+        }
+
+        /* Dark mode styles */
+        body.dark-mode {
+            background: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #0f1419 100%);
+        }
+
+        body.dark-mode .app-shell {
+            background: linear linear-gradient(135 deg, #58d9ff, #07d441, #46bbd8);
+            border-inline-start: 1px solid rgba(255,255,255,0.05);
+            border-inline-end: 1px solid rgba(255,255,255,0.05);
+        }
+
+        body.dark-mode section { color: #e0e0e0; }
+        body.dark-mode h1, body.dark-mode h2, body.dark-mode h3 { color: #58d9ff; }
+        body.dark-mode p, body.dark-mode label { color: #aaa; }
+        body.dark-mode .q-card { background: rgba(30,30,50,0.8); border-color: rgba(255,255,255,0.1); }
+        body.dark-mode .option { background: rgba(40,40,70,0.6); border-color: rgba(255,255,255,0.15); color: #e0e0e0; }
+        body.dark-mode .option:hover:not(:disabled) { background: rgba(60,60,100,0.8); }
+        body.dark-mode .stat-pill { background: rgba(30,30,50,0.8); border-color: rgba(255,255,255,0.1); color: #58d9ff; }
+        body.dark-mode .course-card { background: rgba(30,30,50,0.8); border-color: rgba(255,255,255,0.1); }
+        body.dark-mode .app-header { background: rgba(20,20,40,0.8); border-bottom-color: rgba(255,255,255,0.05); }
+        body.dark-mode .app-footer { background: rgba(20,20,35,0.95); border-top-color: rgba(255,255,255,0.05); }
+        body.dark-mode .footer-card { background: rgba(30,30,50,0.95); border-color: rgba(255,255,255,0.1); color: #e0e0e0; }
+        body.dark-mode input, body.dark-mode textarea { background: rgba(40,40,70,0.8); color: #e0e0e0; border-color: rgba(255,255,255,0.15); }
+        body.dark-mode .btn-secondary { background: rgba(40,40,70,0.6); color: #58d9ff; border-color: rgba(255,255,255,0.15); }
+    </style>
+</head>
+<body>
+
+<div class="blob"></div>
+
+<div class="app-shell">
+
+    <header class="app-header" style="padding:14px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+            <div style="font-size:1.6rem;">🎓</div>
+            <div>
+                <div style="font-weight:800; color:var(--primary);">Welcome, <span id="user-name">Guest</span></div>
+                <div id="current-course-name" style="font-size:0.8rem; color:#777;">No course selected</div>
+            </div>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+            <button class="btn-secondary" onclick="showContact()">Contact</button>
+            <button class="btn-secondary" onclick="showSettings()">Settings</button>
+        </div>
+    </header>
+
+    <section id="login-screen" class="active">
+        <div style="font-size: 5rem; text-align: center;">🚀</div>
+        <h1>ThinkWise </h1>
+        <p>Master any subject with 20-question bite-sized lessons. Are you ready?</p>
+        <input type="text" id="username" placeholder="Enter your name..." style="inline-size:100%; padding:20px; border-radius:20px; border:2px solid #e5e5e5; font-size:1.1rem; outline:none; margin-block-start:20px;">
+        <button class="btn-action" onclick="initGame()">Start Learning</button>
+    </section>
+
+    <section id="settings-screen">
+        <h2>Settings</h2>
+        <div style="margin-block:15px; padding:12px; background:white; border-radius:12px; border:2px solid #e5e5e5;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-block:10px;">
+                <label style="display:flex; gap:10px; align-items:center; margin:0;"><input id="cookie-toggle" type="checkbox" onchange="toggleCookieOpt(this.checked)"> Enable cookies</label>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-block:10px;">
+                <label style="display:flex; gap:10px; align-items:center; margin:0;"><input id="sound-toggle" type="checkbox" onchange="saveSetting('sound', this.checked)" checked> Sound effects</label>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-block:10px;">
+                <span>Dark Mode</span>
+                <input id="theme-toggle" type="checkbox" onchange="toggleTheme(this.checked)" style="scale:1.3;">
+            </div>
+        </div>
+        <button class="btn-action" onclick="showProfile()">👤 My Profile</button>
+        <button class="btn-action" style="background:#999; border-block-end-color:#777;" onclick="showCourses()">Back</button>
+    </section>
+
+    <section id="profile-screen">
+        <h2>My Profile</h2>
+        <div style="background:rgb(253, 252, 252); border-radius:12px; border:2px solid #e5e5e5; padding:16px; margin-block:15px; text-align:center;">
+            <div style="font-size:2.5rem; margin-block:8px;">🎓</div>
+            <div style="font-weight:700; font-size:1.2rem; color:var(--primary);" id="prof-name">Guest</div>
+            <div style="color:#aaa; font-size:0.9rem; margin-block:8px;" id="prof-email">No email</div>
+            <hr style="border:none; border-top:1px solid #e5e5e5; margin:12px 0;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; text-align:center;">
+                <div><div style="font-size:1.5rem; font-weight:800; color:var(--primary);">200</div><div style="font-size:0.8rem; color:#aaa; text-transform:uppercase;">Total XP</div></div>
+                <div><div style="font-size:1.5rem; font-weight:800; color:var(--success);">Level 1</div><div style="font-size:0.8rem; color:#aaa; text-transform:uppercase;">Current</div></div>
+            </div>
+        </div>
+        <button class="btn-action" onclick="showSettings()">Back to Settings</button>
+    </section>
+
+    <section id="contact-screen">
+        <div style="position: relative;">
+            <div class="contact-info-box">
+                <h3>Support Info</h3>
+                <div class="contact-info-item">
+                    <div class="icon">📧</div>
+                    <div class="text">
+                        <div class="label">Email</div>
+                        <div class="value">support@thinkwise.com</div>
+                    </div>
+                </div>
+                <div class="contact-info-item">
+                    <div class="icon">📱</div>
+                    <div class="text">
+                        <div class="label">Phone</div>
+                        <div class="value">+1 (555) 123-4567</div>
+                    </div>
+                </div>
+                <div class="contact-info-item">
+                    <div class="icon">📍</div>
+                    <div class="text">
+                        <div class="label">Location</div>
+                        <div class="value">San Francisco, CA</div>
+                    </div>
+                </div>
+            </div>
+            <div style="max-width: 600px; margin: 0 auto;">
+                <h2>Contact Us</h2>
+                <p>Have a question? We'd love to hear from you. Send us a message and we'll respond as soon as possible.</p>
+                <input id="contact-name" placeholder="Your name" style="inline-size:100%; margin-block:12px;">
+                <input id="contact-email" placeholder="Email" style="inline-size:100%; margin-block:12px;" type="email">
+                <textarea id="contact-msg" placeholder="Your message..." style="inline-size:100%; min-block-size:140px; margin-block:12px;"></textarea>
+                <div id="contact-feedback" style="color:#58cc02; font-size:0.9rem; margin:8px 0; display:none;"></div>
+                <button class="btn-action" onclick="sendContact()">Send Message</button>
+                <button class="btn-secondary" onclick="showCourses()">Back</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="courses-screen">
+        <div class="stats-row">
+            <div class="stat-pill"><span id="stat-xp">0</span><span class="label">Total XP</span></div>
+            <div class="stat-pill"><span id="stat-acc">0%</span><span class="label">Accuracy</span></div>
+            <div class="stat-pill"><span id="stat-lvl">1</span><span class="label">Level</span></div>
+        </div>
+        
+        <h2>Choose Your Course</h2>
+        <div class="courses-grid" id="courses-grid"></div>
+    </section>
+
+    <section id="dash-screen">
+        <div style="text-align: center; margin-block-end: 20px;">
+            <button class="btn-secondary" onclick="showCourses()" style="margin: 0;">← Back to Courses</button>
+        </div>
+        <h2 id="course-title" style="margin-block-start: 0;">Course Lessons</h2>
+        <h2 style="margin-inline-start: 10px;">Your Learning Path</h2>
+        <div class="path-scroll" id="learning-path"></div>
+        <div style="margin-top:20px; background:white; border:2px solid #e5e5e5; border-radius:12px; padding:14px;">
+            <h3 style="margin:0 0 8px 0;">Policies & Cookie Management</h3>
+            <div style="font-size:0.95rem; color:#555;">
+                <button class="btn-secondary" onclick="togglePanel('privacy')">Privacy Policy</button>
+                <button class="btn-secondary" onclick="togglePanel('terms')">Terms & Conditions</button>
+                <div style="margin-top:10px; display:flex; gap:10px; align-items:center;"><label>Cookies:</label><input id="dash-cookie" type="checkbox" onchange="toggleCookieOpt(this.checked)"></div>
+                <div id="policy-area" style="margin-top:12px; color:#666; display:none; border-top:1px dashed #eee; padding-top:10px;"></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="quiz-screen">
+        <div class="progress-wrapper"><div id="bar" class="progress-inner"></div></div>
+        <div class="q-card">
+            <span id="q-count" class="label" style="letter-spacing: 2px;">Question 1 / 20</span>
+            <h2 id="q-text" style="margin: 15px 0;">What is the capital of Japan?</h2>
+            <div id="options-box"></div>
+        </div>
+        <button id="next-btn" class="btn-action" style="display:none;" onclick="nextStep()">Continue</button>
+    </section>
+
+    <section id="result-screen">
+        <h1 style="color: var(--success);">Lesson Complete!</h1>
+        <div class="stats-row" style="margin-block-start:20px;">
+            <div class="stat-pill"><span id="res-score">0/20</span><span class="label">Score</span></div>
+            <div class="stat-pill"><span id="res-xp">+0</span><span class="label">XP</span></div>
+        </div>
+        <div class="chart-container">
+            <canvas id="perfChart"></canvas>
+        </div>
+        <button class="btn-action" onclick="showDashboard()">Return Home</button>
+    </section>
+
+</div>
+
+<footer class="app-footer">
+    © 2026 ThinkWise Team — <a href="#" onclick="togglePanel('privacy')">Privacy</a> • <a href="#" onclick="togglePanel('terms')">Terms</a> • <a href="#" onclick="showContact()">Contact</a>
+</footer>
+
+<!-- Floating policy card anchored above footer -->
+<div id="footer-card" class="footer-card" aria-hidden="true">
+    <button class="close-btn" onclick="closeFooterCard()">✕</button>
+    <div id="footer-card-content" style="max-height:320px; overflow:auto; color:#333; font-size:0.95rem; line-height:1.5;"></div>
+</div>
+
+<script>
+    // System Config
+    const TOTAL_LESSONS = 50;
+    const Q_COUNT = 20;
+
+    const COURSES = [
+        { id: 'web', name: 'Web Development', icon: '🌐', color: '#FF6B6B' },
+        { id: 'python', name: 'Python Programming', icon: '🐍', color: '#4ECDC4' },
+        { id: 'data', name: 'Data Science', icon: '📊', color: '#45B7D1' },
+        { id: 'cloud', name: 'Cloud Computing', icon: '☁️', color: '#FFA07A' },
+        { id: 'cyber', name: 'Cybersecurity', icon: '🔒', color: '#9B59B6' },
+        { id: 'mobile', name: 'Mobile Development', icon: '📱', color: '#F39C12' },
+        { id: 'database', name: 'Database Design', icon: '🗄️', color: '#1ABC9C' },
+        { id: 'ai', name: 'AI & Machine Learning', icon: '🤖', color: '#E74C3C' }
+    ];
+
+    const QUESTION_TEMPLATES = {
+        web: [
+            { t: "What does HTML stand for?", o: ["HyperText Markup Language", "High Tech Modern Language", "Home Tool Markup Language", "Hyperlinks and Text Markup Language"], c: 0 },
+            { t: "Which CSS property is used to change the text color?", o: ["color", "text-color", "font-color", "text"], c: 0 },
+            { t: "What is the purpose of JavaScript?", o: ["Add interactivity to web pages", "Style web pages", "Structure web pages", "Manage databases"], c: 0 },
+            { t: "Which HTML tag is used to define a hyperlink?", o: ["<a>", "<link>", "<href>", "<url>"], c: 0 },
+            { t: "What does CSS stand for?", o: ["Cascading Style Sheets", "Computer Style Sheets", "Colorful Style Sheets", "Creative Style Sheets"], c: 0 },
+            { t: "Which is NOT a valid HTML element?", o: ["<divv>", "<div>", "<section>", "<article>"], c: 0 },
+            { t: "What is the purpose of responsive design?", o: ["Make websites work on different devices", "Make websites faster", "Make websites secure", "Make websites prettier"], c: 0 },
+            { t: "Which CSS property sets the background color?", o: ["background-color", "bg-color", "backcolor", "color-back"], c: 0 },
+            { t: "What does the 'box model' consist of?", o: ["Content, padding, border, margin", "Color, size, position, style", "Width, height, depth, shadow", "Font, size, color, weight"], c: 0 },
+            { t: "Which JavaScript method is used to select HTML elements?", o: ["getElementById()", "getElement()", "selectElement()", "queryElement()"], c: 0 },
+            { t: "What is the correct syntax for a JavaScript function?", o: ["function myFunc() {}", "function: myFunc() {}", "function myFunc [] {}", "myFunc function() {}"], c: 0 },
+            { t: "Which tag is used to link external CSS file?", o: ["<link>", "<style>", "<css>", "<href>"], c: 0 },
+            { t: "What is the difference between id and class selectors?", o: ["id is unique, class can be reused", "class is unique, id can be reused", "They are the same", "id is for text, class is for colors"], c: 0 },
+            { t: "How do you create a comment in HTML?", o: ["<!-- comment -->", "// comment", "# comment", "/* comment */"], c: 0 },
+            { t: "What does REST API stand for?", o: ["Representational State Transfer API", "Remote Execute Service Transfer API", "Rapid Execution System Tool API", "Real-Time Electronic Service API"], c: 0 },
+            { t: "Which HTTP method is used to retrieve data?", o: ["GET", "POST", "PUT", "DELETE"], c: 0 },
+            { t: "What is JSON?", o: ["JavaScript Object Notation", "Java Standard Object Notation", "JavaScript Open Network", "Java Serializable Object Network"], c: 0 },
+            { t: "What does DOM stand for?", o: ["Document Object Model", "Data Object Module", "Direct Object Model", "Document Output Module"], c: 0 },
+            { t: "How do you make text bold in HTML?", o: ["<b> or <strong>", "<bold>", "<heavy>", "<thick>"], c: 0 },
+            { t: "What is a CDN in web development?", o: ["Content Delivery Network", "Code Distribution Network", "Cache Data Network", "Content Database Network"], c: 0 }
+        ],
+        python: [
+            { t: "What is Python?", o: ["A high-level programming language", "A type of snake", "A markup language", "A database system"], c: 0 },
+            { t: "Which keyword is used to create a function in Python?", o: ["def", "function", "func", "define"], c: 0 },
+            { t: "How do you create a list in Python?", o: ["[]", "{}", "()", "<>"], c: 0 },
+            { t: "What is the correct way to create a dictionary?", o: ["{}", "[]", "()", "<>"], c: 0 },
+            { t: "Which of these is a string in Python?", o: ["'Hello'", "[Hello]", "{Hello}", "(Hello)"], c: 0 },
+            { t: "What does 'len()' function do?", o: ["Returns the length of an object", "Creates a new length", "Measures distance", "Lists elements"], c: 0 },
+            { t: "How do you create a comment in Python?", o: ["# This is a comment", "// This is a comment", "<!-- This is a comment -->", "* This is a comment"], c: 0 },
+            { t: "What is the correct way to import a module?", o: ["import module_name", "include module_name", "require module_name", "load module_name"], c: 0 },
+            { t: "Which method adds an item to a list?", o: ["append()", "add()", "insert()", "push()"], c: 0 },
+            { t: "What does 'range()' function generate?", o: ["A sequence of numbers", "A list of strings", "A random number", "A range object for iteration"], c: 0 },
+            { t: "How do you handle exceptions in Python?", o: ["try-except", "try-catch", "error-handle", "exception-block"], c: 0 },
+            { t: "What is a tuple?", o: ["An immutable sequence", "A mutable sequence", "A type of loop", "A function"], c: 0 },
+            { t: "How do you iterate through a list?", o: ["for item in list:", "for (item in list)", "foreach item in list", "loop item in list"], c: 0 },
+            { t: "What does 'return' do in a function?", o: ["Sends a value back to the caller", "Ends the program", "Creates a new variable", "Repeats the function"], c: 0 },
+            { t: "What is None in Python?", o: ["Represents the absence of a value", "An empty string", "A zero value", "A false boolean"], c: 0 },
+            { t: "How do you create a class in Python?", o: ["class ClassName:", "def class ClassName:", "create class ClassName:", "new class ClassName:"], c: 0 },
+            { t: "What is __init__ method?", o: ["Constructor method for classes", "An import statement", "A built-in variable", "A loop function"], c: 0 },
+            { t: "How do you check if a value exists in a list?", o: ["item in list", "list.contains(item)", "list.find(item)", "search(item, list)"], c: 0 },
+            { t: "What does 'self' represent in a class?", o: ["Reference to the instance", "A built-in module", "A keyword for loops", "A type of variable"], c: 0 },
+            { t: "What is list comprehension?", o: ["Compact way to create lists from iterables", "A way to understand lists", "A comment about lists", "A loop statement"], c: 0 }
+        ],
+        data: [
+            { t: "What does 'big data' refer to?", o: ["Large volumes of structured and unstructured data", "A popular movie", "A type of database", "A programming language"], c: 0 },
+            { t: "Which library is commonly used for data analysis in Python?", o: ["pandas", "numpy", "matplotlib", "requests"], c: 0 },
+            { t: "What is machine learning?", o: ["Systems that learn from data", "A type of language", "A programming paradigm", "A computer memory"], c: 0 },
+            { t: "What does SQL stand for?", o: ["Structured Query Language", "Simple Query Language", "Statement Query Language", "System Query Language"], c: 0 },
+            { t: "What is the purpose of data visualization?", o: ["To represent data in graphical form", "To compress data", "To encrypt data", "To clean data"], c: 0 },
+            { t: "Which is a supervised learning model?", o: ["Linear Regression", "K-Means", "Clustering", "Principal Component Analysis"], c: 0 },
+            { t: "What does 'overfitting' mean in machine learning?", o: ["Model learns noise in training data", "Model learns too slowly", "Model is too simple", "Model uses too much memory"], c: 0 },
+            { t: "What is training data?", o: ["Data used to train a model", "Data that is organized", "Data that is cleaned", "Data for testing"], c: 0 },
+            { t: "What does 'accuracy' measure?", o: ["Correct predictions out of total", "Speed of model", "Size of dataset", "Quality of visualization"], c: 0 },
+            { t: "What is feature engineering?", o: ["Creating new features from raw data", "Building computer hardware", "Designing databases", "Writing SQL queries"], c: 0 },
+            { t: "What is normalization in data science?", o: ["Scaling features to a similar range", "Creating backup copies", "Organizing data files", "Removing duplicates"], c: 0 },
+            { t: "What does 'correlation' measure?", o: ["Relationship between variables", "Data organization", "File size", "Processing speed"], c: 0 },
+            { t: "What is a confusion matrix?", o: ["Table showing classification results", "A type of database", "An algorithm", "A visualization tool"], c: 0 },
+            { t: "What does 'cross-validation' do?", o: ["Assesses model performance on different data", "Validates data format", "Checks data quality", "Encrypts information"], c: 0 },
+            { t: "What is clustering?", o: ["Grouping similar data points", "Combining databases", "Organizing files", "Sorting arrays"], c: 0 },
+            { t: "What is the difference between classification and regression?", o: ["Classification predicts categories, regression predicts continuous values", "They are the same", "Classification is simpler", "Regression uses more data"], c: 0 },
+            { t: "What is a dataset?", o: ["Collection of data records", "A type of analysis", "A programming structure", "A database table"], c: 0 },
+            { t: "What does 'preprocessing' involve?", o: ["Cleaning and preparing data", "Analyzing results", "Visualizing data", "Training models"], c: 0 },
+            { t: "What is a histogram?", o: ["Graph showing distribution of values", "Historical document", "A type of database", "A sorting algorithm"], c: 0 },
+            { t: "What is 'P-value' in statistics?", o: ["Probability of observing result by chance", "Price value", "Point value", "Predicted value"], c: 0 }
+        ],
+        cloud: [
+            { t: "What is cloud computing?", o: ["Delivery of computing services over the internet", "A weather phenomenon", "A type of storage device", "A programming language"], c: 0 },
+            { t: "Which is a major cloud provider?", o: ["AWS", "Microsoft Word", "Google Chrome", "Apple Music"], c: 0 },
+            { t: "What does IaaS stand for?", o: ["Infrastructure as a Service", "Internet as a Service", "Information as a Service", "Interface as a Service"], c: 0 },
+            { t: "What is PaaS?", o: ["Platform as a Service", "Program as a Service", "Product as a Service", "Public as a Service"], c: 0 },
+            { t: "What is SaaS?", o: ["Software as a Service", "Storage as a Service", "System as a Service", "Security as a Service"], c: 0 },
+            { t: "What is a virtual machine?", o: ["Emulated computer system running on physical hardware", "A type of cloud", "A programming tool", "A database"], c: 0 },
+            { t: "What is scalability in cloud computing?", o: ["Ability to handle growth", "Cloud backup feature", "Data encryption method", "Network speed"], c: 0 },
+            { t: "What does AWS stand for?", o: ["Amazon Web Services", "Application Web Services", "Advanced Web System", "All Web Services"], c: 0 },
+            { t: "What is a data center?", o: ["Physical location storing computer servers", "A type of software", "Data storage device", "A cloud service"], c: 0 },
+            { t: "What is cloud migration?", o: ["Moving systems to the cloud", "Creating cloud backups", "Downloading from cloud", "Installing cloud software"], c: 0 },
+            { t: "What are microservices?", o: ["Small independent services in architecture", "Tiny databases", "Small payment systems", "Minor applications"], c: 0 },
+            { t: "What is containerization?", o: ["Package applications with dependencies", "Store data in containers", "Create virtual containers", "Organize file folders"], c: 0 },
+            { t: "What is Docker?", o: ["Containerization platform", "A weather tool", "A shipping company", "A database type"], c: 0 },
+            { t: "What is Kubernetes?", o: ["Orchestration platform for containers", "A programming language", "A cloud provider", "A storage service"], c: 0 },
+            { t: "What is API in cloud services?", o: ["Application Programming Interface for integration", "Application Protocol Interface", "Advanced Programming Interface", "Automated Programming Interface"], c: 0 },
+            { t: "What is load balancing?", o: ["Distribute traffic across servers", "Balance computer weight", "Organize data files", "Manage cloud storage"], c: 0 },
+            { t: "What is auto-scaling?", o: ["Automatically adjust resources based on demand", "Automatic scaling of images", "Automated data scaling", "Automatic software updates"], c: 0 },
+            { t: "What is a virtual network?", o: ["Simulated network infrastructure", "A real network", "A wireless connection", "A cloud database"], c: 0 },
+            { t: "What is disaster recovery in cloud?", o: ["Plan to recover from system failures", "Prevent system disasters", "Backup storage method", "Data encryption method"], c: 0 },
+            { t: "What is multi-tenancy?", o: ["Multiple users share same resources", "Many databases", "Multiple servers", "Various cloud types"], c: 0 }
+        ],
+        cyber: [
+            { t: "What is cybersecurity?", o: ["Protection of systems from digital attacks", "Physics of computers", "Organization of data", "Type of software"], c: 0 },
+            { t: "What is a firewall?", o: ["Security system that monitors traffic", "Physical wall in data center", "Network cable", "Type of encryption"], c: 0 },
+            { t: "What is phishing?", o: ["Fraudulent attempt to obtain sensitive information", "Catching fish online", "Data sorting method", "Network protocol"], c: 0 },
+            { t: "What is encryption?", o: ["Convert data into coded form", "Data organization method", "File compression", "Database indexing"], c: 0 },
+            { t: "What is a VPN?", o: ["Virtual Private Network for secure connection", "Virtual Public Network", "Video Private Network", "Virtual Protocol Network"], c: 0 },
+            { t: "What is two-factor authentication?", o: ["Two verification methods for login", "Two password types", "Two encryption methods", "Two network connections"], c: 0 },
+            { t: "What is a malware?", o: ["Malicious software designed to harm", "Bad hardware", "Software bug", "Outdated program"], c: 0 },
+            { t: "What is a virus?", o: ["Self-replicating malicious code", "Biological virus affecting computers", "Network error", "Outdated file"], c: 0 },
+            { t: "What is a trojan?", o: ["Malware disguised as legitimate software", "A type of network", "A programming language", "A data structure"], c: 0 },
+            { t: "What is ransomware?", o: ["Malware that encrypts files for ransom", "Random software", "Network management tool", "Data backup system"], c: 0 },
+            { t: "What is SQL injection?", o: ["Inserting malicious SQL into input fields", "Creating SQL databases", "Running SQL queries", "Optimizing SQL code"], c: 0 },
+            { t: "What is authentication?", o: ["Process of verifying user identity", "Authorization process", "Data encryption", "Network security"], c: 0 },
+            { t: "What is authorization?", o: ["Granting permissions to authenticated users", "Verifying identity", "Encrypting data", "Monitoring activity"], c: 0 },
+            { t: "What is a security audit?", o: ["Analysis of security vulnerabilities", "Software review", "Data backup process", "Network upgrade"], c: 0 },
+            { t: "What is password hashing?", o: ["Converting password into fixed-length code", "Creating strong passwords", "Encrypting passwords", "Storing passwords"], c: 0 },
+            { t: "What is penetration testing?", o: ["Authorized simulated attack to find vulnerabilities", "Physical security testing", "Software testing", "Network monitoring"], c: 0 },
+            { t: "What is DDoS attack?", o: ["Distributed Denial of Service attack", "Data Distribution Service", "Direct Data System", "Digital Defense Service"], c: 0 },
+            { t: "What is a security policy?", o: ["Guidelines for protecting information", "Software license policy", "Company hiring policy", "Data storage policy"], c: 0 },
+            { t: "What is zero-trust security?", o: ["Never trust, always verify access", "Trust-free networking", "Zero encryption method", "No security measures"], c: 0 },
+            { t: "What is backup recovery?", o: ["Process of restoring data from backups", "Creating backup copies", "Archiving old data", "Deleting redundant data"], c: 0 }
+        ],
+        mobile: [
+            { t: "What are the two major mobile OS platforms?", o: ["iOS and Android", "Windows and Mac", "Linux and Unix", "Java and Python"], c: 0 },
+            { t: "What is Swift?", o: ["Programming language for iOS development", "Fast internet speed", "Quick software installer", "Rapid file transfer"], c: 0 },
+            { t: "What is Kotlin?", o: ["Modern language for Android development", "A type of protein", "A database system", "A design pattern"], c: 0 },
+            { t: "What is responsive design in mobile?", o: ["Design that adapts to different screen sizes", "Quick design process", "Simple design approach", "Standard design template"], c: 0 },
+            { t: "What is cross-platform development?", o: ["Building apps for multiple platforms", "Traveling across platforms", "Platform migration", "Platform testing"], c: 0 },
+            { t: "What is React Native?", o: ["Framework for cross-platform mobile apps", "Native reaction app", "Network server", "Reactive system"], c: 0 },
+            { t: "What is Flutter?", o: ["Google's UI framework for mobile apps", "Fluttering motion effect", "Fast loading system", "Floating UI element"], c: 0 },
+            { t: "What is a native app?", o: ["App built for specific OS using native language", "Natural application", "Network application", "Notation app"], c: 0 },
+            { t: "What is a web app?", o: ["App accessed through web browser", "Website application", "Web service", "Web protocol"], c: 0 },
+            { t: "What is hybrid app?", o: ["Combination of native and web app", "Hybrid vehicle app", "Mixed platform", "Multiple version app"], c: 0 },
+            { t: "What is progressive web app (PWA)?", o: ["Web app with native app features", "Progressive loading system", "Forward-moving application", "Platform web app"], c: 0 },
+            { t: "What is mobile optimization?", o: ["Improve app performance for mobile devices", "Mobile phone repair", "Device management", "Screen size adjustment"], c: 0 },
+            { t: "What is touch gestures?", o: ["User interactions like swipe and tap", "Physical touch sensations", "Gesture recognition system", "Touch screen technology"], c: 0 },
+            { t: "What is offline functionality?", o: ["App works without internet connection", "Working offline mode", "Internet disconnection", "Offline storage"], c: 0 },
+            { t: "What is location services?", o: ["Using GPS for location-based features", "Location tracking system", "Map service", "Positioning system"], c: 0 },
+            { t: "What is push notification?", o: ["Message sent to user from server", "Forcing app update", "Pushing notifications manually", "User notification settings"], c: 0 },
+            { t: "What is a simulator?", o: ["Virtual device for testing apps", "Simulation software", "Device emulator", "Testing environment"], c: 0 },
+            { t: "What is app distribution?", o: ["Process of releasing app to users", "Distributing app files", "App delivery system", "User download process"], c: 0 },
+            { t: "What is app store optimization?", o: ["Improving app visibility in app stores", "Store management system", "Optimization software", "Store website"], c: 0 },
+            { t: "What is monetization in mobile apps?", o: ["Strategies to generate revenue from apps", "Mobile app creation", "App pricing", "App marketing"], c: 0 }
+        ],
+        database: [
+            { t: "What is a database?", o: ["Organized collection of structured data", "Large computer file", "Network system", "Software application"], c: 0 },
+            { t: "What is SQL?", o: ["Language for managing databases", "Simple Query Language", "Server Query Logic", "Structured Query Log"], c: 0 },
+            { t: "What is a relational database?", o: ["Database using tables with relationships", "Database for relationships", "Connected database", "Relative data structure"], c: 0 },
+            { t: "What is a primary key?", o: ["Unique identifier for each record", "First key in database", "Main encryption key", "Primary password"], c: 0 },
+            { t: "What is a foreign key?", o: ["Reference to primary key in another table", "External key", "Key from foreign system", "Secondary key"], c: 0 },
+            { t: "What is normalization?", o: ["Process of organizing data to reduce redundancy", "Making data normal", "Data standardization", "Format adjustment"], c: 0 },
+            { t: "What is a schema?", o: ["Blueprint of database structure", "Database file", "Data organization plan", "Data type definition"], c: 0 },
+            { t: "What is a query?", o: ["Request to retrieve or modify data", "Question in database", "Data search operation", "Data retrieval command"], c: 0 },
+            { t: "What is indexing?", o: ["Creating index for faster data access", "Numbering data records", "Organizing data files", "Data sorting method"], c: 0 },
+            { t: "What is a transaction?", o: ["Unit of work in database", "Data transfer", "Database operation", "Record modification"], c: 0 },
+            { t: "What is ACID properties?", o: ["Atomicity, Consistency, Isolation, Durability", "Database automatic properties", "Data security measures", "Database optimization rules"], c: 0 },
+            { t: "What is a stored procedure?", o: ["Pre-compiled SQL code stored in database", "Saved SQL statement", "Database process", "Stored data"], c: 0 },
+            { t: "What is a trigger?", o: ["Automated action triggered by specific event", "Database warning", "Data alert system", "Event notification"], c: 0 },
+            { t: "What is backup?", o: ["Copy of database for recovery", "Backup plan", "Data copy", "Backup system"], c: 0 },
+            { t: "What is replication?", o: ["Creating copies of database for redundancy", "Data duplication", "Database backup", "Data synchronization"], c: 0 },
+            { t: "What is partitioning?", o: ["Dividing large table into smaller parts", "Database splitting", "Data division", "Table separation"], c: 0 },
+            { t: "What is sharding?", o: ["Horizontal partitioning across servers", "Database splitting", "Data distribution", "Table division"], c: 0 },
+            { t: "What is NoSQL?", o: ["Non-relational database systems", "No Structured Query Language", "Network SQL", "No SQL commands"], c: 0 },
+            { t: "What is MongoDB?", o: ["Document-oriented NoSQL database", "Mongo database system", "Large database", "Data collection system"], c: 0 },
+            { t: "What is data integrity?", o: ["Accuracy and consistency of data", "Data safety", "Data protection", "Data validation"], c: 0 }
+        ],
+        ai: [
+            { t: "What is Artificial Intelligence?", o: ["Simulation of human intelligence by machines", "Artificial human", "Automated interaction", "Advanced interface"], c: 0 },
+            { t: "What is machine learning?", o: ["Systems that learn from data without explicit programming", "Learning machines", "Mechanical learning", "Manual learning"], c: 0 },
+            { t: "What is deep learning?", o: ["Machine learning using neural networks", "Learning deeply", "Deep data analysis", "Deep thinking model"], c: 0 },
+            { t: "What is a neural network?", o: ["Computing system inspired by biological neurons", "Network of neurons", "Biological network", "Neural connection"], c: 0 },
+            { t: "What is natural language processing?", o: ["Processing human language computationally", "Speaking naturally", "Language translation", "Text processing"], c: 0 },
+            { t: "What is computer vision?", o: ["Enabling machines to interpret visual data", "Vision for computers", "Computer seeing", "Visual processing"], c: 0 },
+            { t: "What is supervised learning?", o: ["Learning with labeled training data", "Supervised study method", "Management learning", "Monitored learning"], c: 0 },
+            { t: "What is unsupervised learning?", o: ["Learning from unlabeled data to find patterns", "Unsupervised study", "Independent learning", "Autonomous learning"], c: 0 },
+            { t: "What is reinforcement learning?", o: ["Learning through rewards and penalties", "Reinforcing learning", "Strengthening knowledge", "Repeated learning"], c: 0 },
+            { t: "What is a decision tree?", o: ["Model using tree-like decisions for classification", "Tree of decisions", "Decision making model", "Classification tree"], c: 0 },
+            { t: "What is clustering?", o: ["Grouping similar data points without labels", "Data grouping", "Similar object collection", "Category forming"], c: 0 },
+            { t: "What is the bias-variance tradeoff?", o: ["Balance between underfitting and overfitting", "Bias and diversity", "Model balance", "Error reduction"], c: 0 },
+            { t: "What is a chatbot?", o: ["AI system for conversational interaction", "Chat application", "Bot for messaging", "Automated help system"], c: 0 },
+            { t: "What is a recommendation system?", o: ["AI that suggests relevant items to users", "System recommendation", "Suggestion software", "Preference finder"], c: 0 },
+            { t: "What is transfer learning?", o: ["Using pre-trained models for new tasks", "Learning transfer", "Model adaptation", "Knowledge reuse"], c: 0 },
+            { t: "What is hyperparameter tuning?", o: ["Optimizing model configuration parameters", "Parameter adjustment", "Model configuration", "Setting optimization"], c: 0 },
+            { t: "What is gradient descent?", o: ["Optimization algorithm for minimizing loss", "Descending gradients", "Slope reduction", "Error minimization"], c: 0 },
+            { t: "What is backpropagation?", o: ["Algorithm for training neural networks", "Backward propagation", "Error propagation", "Network training method"], c: 0 },
+            { t: "What is an embedding?", o: ["Representation of data in vector space", "Data embedding", "Vector representation", "Data encoding"], c: 0 },
+            { t: "What is attention mechanism?", o: ["Mechanism focusing on relevant parts of input", "Focus mechanism", "Selective processing", "Attention model"], c: 0 }
+        ]
+    };
+
+    let user = JSON.parse(localStorage.getItem('ql_pro_user')) || {
+        name: "", xp: 0, scores: {}, currentCourse: null
+    };
+
+    let session = { qList: [], current: 0, score: 0, active: true, courseId: null };
+
+    function initGame() {
+        const name = document.getElementById('username').value;
+        if(!name) return alert("Identify yourself, scholar!");
+        user.name = name;
+        save();
+        document.getElementById('user-name').innerText = user.name;
+        showCourses();
+    }
+
+    function showCourses() {
+        renderStats();
+        document.getElementById('user-name').innerText = user.name || 'Guest';
+        if(!user.currentCourse) document.getElementById('current-course-name').innerText = 'No course selected';
+        const grid = document.getElementById('courses-grid');
+        grid.innerHTML = '';
+        COURSES.forEach(course => {
+            const card = document.createElement('div');
+            card.className = 'course-card';
+            const progress = user.scores[course.id] ? Math.min(user.scores[course.id].length, TOTAL_LESSONS) : 0;
+            card.innerHTML = `
+                <div class="course-icon">${course.icon}</div>
+                <div class="course-name">${course.name}</div>
+                <div class="course-progress">${progress}/${TOTAL_LESSONS} lessons</div>
+            `;
+            card.onclick = () => selectCourse(course.id);
+            grid.appendChild(card);
+        });
+        switchScreen('courses-screen');
+    }
+
+    function selectCourse(courseId) {
+        user.currentCourse = courseId;
+        save();
+        const course = COURSES.find(c=>c.id===courseId);
+        if(course) document.getElementById('current-course-name').innerText = course.name;
+        showDashboard();
+    }
+
+    function showDashboard() {
+        renderStats();
+        renderPath();
+        const course = COURSES.find(c => c.id === user.currentCourse);
+        document.getElementById('course-title').innerText = `${course.name} - Lessons`;
+        switchScreen('dash-screen');
+    }
+
+    function renderStats() {
+        document.getElementById('stat-xp').innerText = user.xp;
+        let allScores = [];
+        Object.values(user.scores).forEach(courseScores => {
+            allScores = allScores.concat(courseScores);
+        });
+        const avg = allScores.length ? Math.round(allScores.reduce((a,b)=>a+b, 0)/allScores.length) : 0;
+        document.getElementById('stat-acc').innerText = avg + "%";
+        document.getElementById('stat-lvl').innerText = Math.floor(user.xp / 500) + 1;
+    }
+
+    function renderPath() {
+        const path = document.getElementById('learning-path');
+        path.innerHTML = '';
+        const courseScores = user.scores[user.currentCourse] || [];
+        const lessonsDone = Math.min(courseScores.length, TOTAL_LESSONS);
+        
+        for(let i=1; i<=TOTAL_LESSONS; i++) {
+            const btn = document.createElement('div');
+            const isLocked = i > lessonsDone + 1;
+            const isDone = i <= lessonsDone;
+            
+            btn.className = `lesson-bubble ${isLocked ? 'locked-lesson' : (isDone ? 'completed-lesson' : 'active-lesson')}`;
+            btn.innerHTML = isDone ? '⭐' : i;
+            btn.style.marginLeft = `${Math.sin(i) * 40}px`;
+            
+            if(!isLocked) btn.onclick = () => startQuiz(i);
+            path.appendChild(btn);
+        }
+    }
+
+    function startQuiz(lessonNum) {
+        session.courseId = user.currentCourse;
+        const templates = QUESTION_TEMPLATES[session.courseId];
+        session.qList = Array.from({length: Q_COUNT}, (_, i) => {
+            const template = templates[i % templates.length];
+            const shuffled = template.o.slice().sort(() => Math.random() - 0.5);
+            return {
+                t: template.t,
+                o: shuffled,
+                c: shuffled.indexOf(template.o[template.c])
+            };
+        });
+        const course = COURSES.find(c=>c.id===session.courseId);
+        if(course) document.getElementById('current-course-name').innerText = `${course.name} — Lesson ${lessonNum}`;
+        
+        session.current = 0;
+        session.score = 0;
+        switchScreen('quiz-screen');
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        session.active = true;
+        const q = session.qList[session.current];
+        document.getElementById('q-count').innerText = `Question ${session.current + 1} / ${Q_COUNT}`;
+        document.getElementById('q-text').innerText = q.t;
+        document.getElementById('bar').style.width = `${(session.current / Q_COUNT) * 100}%`;
+        document.getElementById('next-btn').style.display = 'none';
+
+        const box = document.getElementById('options-box');
+        box.innerHTML = '';
+        q.o.forEach((opt, i) => {
+            const b = document.createElement('button');
+            b.className = 'option';
+            b.innerText = opt;
+            b.onclick = () => check(i, b);
+            box.appendChild(b);
+        });
+    }
+
+    function check(idx, el) {
+        if(!session.active) return;
+        session.active = false;
+        const correct = session.qList[session.current].c;
+        // disable all options
+        Array.from(document.getElementById('options-box').children).forEach(btn => btn.disabled = true);
+        if(idx === correct) {
+            el.classList.add('correct','pop');
+            session.score++;
+            playSound('correct');
+        } else {
+            el.classList.add('wrong','shake');
+            const correctBtn = document.getElementById('options-box').children[correct];
+            if(correctBtn) correctBtn.classList.add('correct','pop');
+            playSound('wrong');
+        }
+        // remove animation classes after they finish
+        setTimeout(()=>{
+            Array.from(document.getElementById('options-box').children).forEach(btn=>{ btn.classList.remove('pop','shake'); });
+        }, 700);
+        document.getElementById('next-btn').style.display = 'block';
+    }
+
+    function nextStep() {
+        session.current++;
+        if(session.current < Q_COUNT) loadQuestion();
+        else finish();
+    }
+
+    function finish() {
+        playSound('complete');
+        const pct = Math.round((session.score / Q_COUNT) * 100);
+        const xpGained = session.score * 15;
+        user.xp += xpGained;
+        if(!user.scores[session.courseId]) user.scores[session.courseId] = [];
+        user.scores[session.courseId].push(pct);
+        save();
+
+        document.getElementById('res-score').innerText = `${session.score}/${Q_COUNT}`;
+        document.getElementById('res-xp').innerText = `+${xpGained}`;
+        switchScreen('result-screen');
+        drawChart();
+    }
+
+    function drawChart() {
+        const ctx = document.getElementById('perfChart').getContext('2d');
+        if(window.chart) window.chart.destroy();
+        const courseScores = user.scores[session.courseId] || [];
+        window.chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: courseScores.map((_, i) => i + 1),
+                datasets: [{ label: 'Performance %', data: courseScores, borderColor: '#1cb0f6', tension: 0.3 }]
+            }
+        });
+    }
+
+    function switchScreen(id) {
+        document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        window.scrollTo(0,0);
+    }
+
+    function save() { localStorage.setItem('ql_pro_user', JSON.stringify(user)); }
+
+    // UI helpers
+    function showSettings(){
+        // reflect current settings
+        document.getElementById('cookie-toggle').checked = !!JSON.parse(localStorage.getItem('ql_cookies'));
+        document.getElementById('sound-toggle').checked = JSON.parse(localStorage.getItem('ql_sound') || 'true');
+        document.getElementById('theme-toggle').checked = localStorage.getItem('ql_theme') === 'dark';
+        switchScreen('settings-screen');
+    }
+
+    function showContact(){ switchScreen('contact-screen'); }
+
+    function sendContact(){
+        const n = document.getElementById('contact-name').value.trim();
+        const e = document.getElementById('contact-email').value.trim();
+        const m = document.getElementById('contact-msg').value.trim();
+        const feedbackEl = document.getElementById('contact-feedback');
+        
+        // Validation
+        if(!n) { feedbackEl.textContent = '❌ Please enter your name'; feedbackEl.style.display='block'; return; }
+        if(!e || !e.includes('@')) { feedbackEl.textContent = '❌ Please enter a valid email'; feedbackEl.style.display='block'; return; }
+        if(!m || m.length < 10) { feedbackEl.textContent = '❌ Message must be at least 10 characters'; feedbackEl.style.display='block'; return; }
+        
+        // Store in localStorage
+        let messages = JSON.parse(localStorage.getItem('ql_messages') || '[]');
+        messages.push({
+            name: n,
+            email: e,
+            message: m,
+            timestamp: new Date().toISOString()
+        });
+        localStorage.setItem('ql_messages', JSON.stringify(messages));
+        
+        // Show success
+        feedbackEl.textContent = '✔ Thanks '+n+'! Your message was sent successfully.';
+        feedbackEl.style.color = '#58cc02';
+        feedbackEl.style.display='block';
+        
+        // Clear form
+        document.getElementById('contact-name').value='';
+        document.getElementById('contact-email').value='';
+        document.getElementById('contact-msg').value='';
+        
+        // Auto-redirect after 2 seconds
+        setTimeout(()=>showCourses(), 2000);
+    }
+
+    function togglePanel(id){
+        const card = document.getElementById('footer-card');
+        const content = document.getElementById('footer-card-content');
+        if(!card || !content) return;
+        if(id === 'privacy'){
+            content.innerHTML = '<h3 style="margin-top:0;">Privacy Policy</h3><p>We collect minimal demo data to provide a better learning experience. No external tracking is enabled in this demo. Use your browser privacy controls to manage storage.</p>';
+        } else if(id === 'terms'){
+            content.innerHTML = '<h3 style="margin-top:0;">Terms &amp; Conditions</h3><p>Use this application responsibly. Content is for learning/demo purposes only. No warranties are provided.</p>';
+        }
+        card.classList.add('visible');
+        card.setAttribute('aria-hidden','false');
+        // ensure footer card appears above content and page is scrolled down a bit
+        setTimeout(()=> window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 80);
+    }
+
+    function closeFooterCard(){
+        const card = document.getElementById('footer-card');
+        if(!card) return;
+        card.classList.remove('visible');
+        card.setAttribute('aria-hidden','true');
+    }
+
+    function toggleCookieOpt(checked){
+        localStorage.setItem('ql_cookies', JSON.stringify(!!checked));
+        const dash = document.getElementById('dash-cookie'); if(dash) dash.checked = !!checked;
+        document.getElementById('cookie-toggle') && (document.getElementById('cookie-toggle').checked = !!checked);
+    }
+
+    function saveSetting(key, val){
+        if(key === 'sound') localStorage.setItem('ql_sound', JSON.stringify(!!val));
+    }
+
+    // initialize small UI pieces
+    document.getElementById('user-name').innerText = user.name || 'Guest';
+    const cstate = JSON.parse(localStorage.getItem('ql_cookies')) || false;
+    const dashCookie = document.getElementById('dash-cookie'); if(dashCookie) dashCookie.checked = cstate;
+
+    // Theme management
+    const savedTheme = localStorage.getItem('ql_theme') || 'light';
+    if(savedTheme === 'dark') {
+        document.body.classList.add('dark-mode');
+        const themeToggle = document.getElementById('theme-toggle');
+        if(themeToggle) themeToggle.checked = true;
+    }
+
+    function toggleTheme(isDark){
+        if(isDark) {
+            document.body.classList.add('dark-mode');
+            localStorage.setItem('ql_theme', 'dark');
+        } else {
+            document.body.classList.remove('dark-mode');
+            localStorage.setItem('ql_theme', 'light');
+        }
+    }
+
+    // Sound effects using Web Audio API
+    function playSound(type){
+        if(!JSON.parse(localStorage.getItem('ql_sound') || 'true')) return; // default on
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        if(type === 'correct'){
+            osc.frequency.value = 800;
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.2);
+        } else if(type === 'wrong'){
+            osc.frequency.value = 400;
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.3);
+        } else if(type === 'complete'){
+            const freqs = [523.25, 659.25, 783.99];
+            freqs.forEach((f, i) => {
+                const o = ctx.createOscillator();
+                const g = ctx.createGain();
+                o.connect(g); g.connect(ctx.destination);
+                o.frequency.value = f;
+                g.gain.setValueAtTime(0.15, ctx.currentTime + i*0.1);
+                g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i*0.1 + 0.15);
+                o.start(ctx.currentTime + i*0.1);
+                o.stop(ctx.currentTime + i*0.1 + 0.15);
+            });
+        }
+    }
+
+    function showProfile(){
+        document.getElementById('prof-name').innerText = user.name || 'Guest User';
+        document.getElementById('prof-email').innerText = 'Champion Learner';
+        switchScreen('profile-screen');
+    }
+</script>
+</body>
+</html>
